@@ -1,0 +1,16 @@
+div.notices, div.collections {
+  display:none;
+}
+.montrer {
+  cursor:pointer;
+  color:#aaa;
+}
+.collection {
+  font-weight : bold;
+}
+#titre-arbo {
+  font-weight: bold;
+}
+.tout {
+  cursor:pointer;
+}

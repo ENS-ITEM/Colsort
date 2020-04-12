@@ -1,24 +1,9 @@
 <?php
-echo head(array('title' => 'Arborescence du corpus', 'bodyclass' => 'collections browse')); ?>
+queue_css_file('colsort');
 
-<style>
-div.notices, div.collections {
-  display:none;
-}
-.montrer {
-  cursor:pointer;
-  color:#aaa;
-}
-.collection {
-  font-weight : bold;
-}
-#titre-arbo {
-  font-weight: bold;
-}
-.tout {
-  cursor:pointer;
-}
-</style>
+echo head(array('title' => 'Arborescence du corpus', 'bodyclass' => 'collections browse'));
+?>
+
 <script>
 $ = jQuery;
 $(document).ready(function() {

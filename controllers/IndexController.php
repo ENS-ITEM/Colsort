@@ -99,7 +99,7 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
         foreach ($items as $id => $item) {
             $item = get_record_by_id('item', $item['id']);
             if ($item) {
-                $notices .= '<li style="list-style-type:circle;">' . link_to_item(null, array(), 'show', $item) . '</li>';
+                $notices .= '<li>' . link_to_item(null, array(), 'show', $item) . '</li>';
             }
         }
         $notices .= '</ul></div>';
