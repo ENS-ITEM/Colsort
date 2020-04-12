@@ -78,9 +78,14 @@ On affiche les collections d'abord dans l'ordre croissant des collections parent
     {
         $order = unserialize(get_option('sortcol_preferences'));
         foreach ($cols as $id => $col) {
-            $cols[$id]['ordre'] = $order[$col['id']];
+            if (isset($order[$col['id']])) {
+                $cols[$id]['ordre'] = $order[$col['id']];
+            }
         }
         usort($cols, function ($a, $b) {
+            if ($a['ordre'] == $b['ordre']) {
+                return 0;
+            }
             return ($a['ordre'] < $b['ordre']) ? -1 : 1;
         });
         return $cols;

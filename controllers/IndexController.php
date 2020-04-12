@@ -87,9 +87,12 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
             }
         }
         usort($items, function ($a, $b) {
-            if (!isset($a['ordre']) || !isset($a['ordre'])) {
+            if (!isset($a['ordre']) || !isset($b['ordre'])) {
                 return 1;
             };
+            if ($a['ordre'] == $b['ordre']) {
+                return 0;
+            }
             return ($a['ordre'] < $b['ordre']) ? -1 : 1;
         });
         $notices .= '<div class="notices"><ul>';
@@ -114,6 +117,9 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
             }
         }
         usort($cols, function ($a, $b) {
+            if ($a['ordre'] == $b['ordre']) {
+                return 0;
+            }
             return ($a['ordre'] < $b['ordre']) ? -1 : 1;
         });
         return $cols;
