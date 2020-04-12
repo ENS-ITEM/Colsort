@@ -28,33 +28,53 @@ HTML;
                 unset($formData['save']);
                 // Convert string keys and values to integer.
                 $this->orderedCollections = array_combine(array_map('intval', array_keys($formData)), array_map('intval', array_values($formData)));
-                // Sort by the specified order.
+                // Keep only interesting data.
+                $this->orderedCollections = array_filter($this->orderedCollections);
+                // Order by priority.
                 asort($this->orderedCollections);
                 set_option('colsort_collections_order', json_encode($this->orderedCollections));
                 $this->_helper->flashMessenger('Ordre des collections sauvegardé.', 'success');
             }
         }
+
         $form = $this->getCollectionsForm();
         $this->view->content .= $form;
     }
 
     protected function orderCollections($cols)
     {
-        foreach ($cols as $id => $col) {
-            if (isset($this->orderedCollections[$col['id']])) {
-                $cols[$id]['ordre'] = $this->orderedCollections[$col['id']];
+        $result = array();
+        $this->orderedCollections = array_filter($this->orderedCollections);
+        // Order all collections.
+        $cols = array_replace(
+            array_intersect_key($this->orderedCollections, $cols),
+            $cols
+        );
+        // Order all children collections.
+        foreach ($cols as &$col) {
+            $col['children'] = array_keys(array_replace(
+                array_intersect_key($this->orderedCollections, array_flip($col['children'])),
+                array_flip($col['children'])
+            ));
+        }
+        unset($col);
+        // Append each child collection.
+        foreach ($cols as $collectionId => $col) {
+            if ($col['depth'] === 0) {
+                $result[$collectionId] = $col;
+                $result = $this->recursiveAppendChildrenCollections($result, $cols, $collectionId);
             }
         }
-        usort($cols, function ($a, $b) {
-            if (!isset($a['ordre'])
-                || !isset($b['ordre'])
-                || ($a['ordre'] == $b['ordre'])
-            ) {
-                return 0;
-            }
-            return ($a['ordre'] < $b['ordre']) ? -1 : 1;
-        });
-        return $cols;
+        return $result;
+    }
+
+    protected function recursiveAppendChildrenCollections($collections, $cols, $collectionId)
+    {
+        foreach ($cols[$collectionId]['children'] as $childCollectionId) {
+            $collections[$childCollectionId] = $cols[$childCollectionId];
+            $collections = $this->recursiveAppendChildrenCollections($collections, $cols, $childCollectionId);
+        }
+        return $collections;
     }
 
     private function getCollectionsForm()
@@ -62,25 +82,21 @@ HTML;
         $form = new Zend_Form();
         $form->setName('SortCollections');
 
-        $db = get_db();
+        // The order is alphabetic or by id by default.
+        $collectionList = get_db()->getTable('CollectionTree')->getCollectionList();
+        $collectionList = $this->orderCollections($collectionList);
 
-        $collections = get_recent_collections(1000);
-        $collections = $this->orderCollections($collections);
-        foreach ($collections as $col) {
-            $cid = $col['id'];
-            $query = "SELECT parent_collection_id FROM omeka_collection_trees WHERE collection_id = $cid";
-            $parentId = $db->query($query)->fetchAll();
-            $parentId = $parentId[0]['parent_collection_id'];
-            $parentName = $db->query("SELECT name FROM omeka_collection_trees WHERE collection_id = $parentId")->fetchAll();
-            if ($parentName) {
-                $parentName = $parentName[0]['name'];
-            } else {
-                $parentName = '';
+        foreach ($collectionList as $cid => $collection) {
+            $collectionObj = get_record_by_id('Collection', $cid);
+            if (!$collectionObj) {
+                continue;
             }
 
-            $nom = link_to_collection(null, array(), 'show', $col);
-            if ($parentId <> 0) {
-                $nom .= " (enfant de <em>$parentName</em>)";
+            $nom = link_to_collection(null, array(), 'show', $collectionObj);
+            release_object($collectionObj);
+
+            if ($collection['parent'] && isset($collectionList[$collection['parent']]['name'])) {
+                $nom .= ' (enfant de <em>' . $collectionList[$collection['parent']]['name'] . '</em>)';
             } else {
                 $nom = "<b>$nom</b>";
             }
