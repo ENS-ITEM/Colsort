@@ -52,7 +52,6 @@ HTML;
         $collections = $this->orderCollections($collections);
         foreach ($collections as $col) {
             $cid = $col['id'];
-            $nom = link_to_collection(null, array(), 'show', $col);
             $query = "SELECT parent_collection_id FROM omeka_collection_trees WHERE collection_id = $cid";
             $parentId = $db->query($query)->fetchAll();
             $parentId = $parentId[0]['parent_collection_id'];
@@ -63,19 +62,22 @@ HTML;
                 $parentName = '';
             }
 
+            $nom = link_to_collection(null, array(), 'show', $col);
             if ($parentId <> 0) {
                 $nom .= " (enfant de <em>$parentName</em>)";
             } else {
                 $nom = "<b>$nom</b>";
             }
+
+            $num = empty($order[$cid]) ? '' : $order[$cid];
+
             $fieldCol = new Zend_Form_Element_Text('col_' . $cid);
-            $fieldCol->setName($cid);
-            $fieldCol->setAttrib('size', 3);
-            $fieldCol->setLabel($nom);
-            isset($order[$cid]) ? $num = $order[$cid] : $num = 0;
-            if ($num) {
-                $fieldCol->setValue($num);
-            }
+            $fieldCol
+                ->setName($cid)
+                ->setLabel($nom)
+                ->setAttrib('size', 3)
+                ->setAttrib('type', 'number')
+                ->setValue($num);
             $form->addElement($fieldCol);
         }
 

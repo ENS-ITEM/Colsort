@@ -24,24 +24,25 @@ SQL;
         $cols = $db->query($query)->fetchAll();
         $cols = $this->orderCollections($cols);
         $includeItems = (bool) get_option('colsort_append_items');
-        $this->tree .= '<ul>';
+
+        $this->tree .= '<ul>' . PHP_EOL;
         foreach ($cols as $col) {
             $collection = get_record_by_id('collection', $col['id']);
             if (!$collection) {
                 continue;
             }
             $plus = '';
-            if ($this->fetch_child_collections($col['id'])) {
-                $plus = '<span class="montrer">+</span>';
-            }
             $items = '';
-            if ($includeItems && $items = $this->fetch_items($col['id'])) {
-                $plus = '<span class="montrer">+</span>';
+            if ($this->fetch_child_collections($col['id'])) {
+                $plus = ' <span class="montrer">+</span>';
             }
-            $this->tree .= '<li>' . link_to_collection(null, array('class' => 'collection'), 'show', $collection) . $plus . '</li>';
+            if ($includeItems && $items = $this->fetch_items($col['id'])) {
+                $plus = ' <span class="montrer">+</span>';
+            }
+            $this->tree .= '<li>' . link_to_collection(null, array('class' => 'collection'), 'show', $collection) . $plus . '</li>' . PHP_EOL;
             $this->tree .= $items;
         }
-        $this->tree .= '</ul>';
+        $this->tree .= '</ul>' . PHP_EOL;
         $this->view->tree = $this->tree;
         return true;
     }
@@ -65,9 +66,8 @@ SQL;
         $includeItems = (bool) get_option('colsort_append_items');
 
         $child_collections = $this->orderCollections($child_collections);
-        $plus = '';
 
-        $this->tree .= '<div class="collections"><ul>';
+        $this->tree .= '<div class="collections"><ul>' . PHP_EOL;
         foreach ($child_collections as $col) {
             $collection = get_record_by_id('collection', $col['id']);
             if (!$collection) {
@@ -76,12 +76,12 @@ SQL;
             $plus = '';
             $items = '';
             if ($includeItems && $items = $this->fetch_items($col['id'])) {
-                $plus = '<span class="montrer">+</span>';
+                $plus = ' <span class="montrer">+</span>';
             }
-            $this->tree .= '<li>' . link_to_collection(null, array('class' => 'collection'), 'show', $collection) . $plus . '</li>';
+            $this->tree .= '<li>' . link_to_collection(null, array('class' => 'collection'), 'show', $collection) . $plus . '</li>' . PHP_EOL;
             $this->tree .= $items;
         }
-        $this->tree .= '</ul></div>';
+        $this->tree .= '</ul></div>' . PHP_EOL;
         return true;
     }
 
@@ -93,8 +93,7 @@ SQL;
             return false;
         }
 
-        // Sort items by item order module
-        $notices = '';
+        // Sort items by item order module.
         $ordre = $db->query("SELECT item_id, omeka_item_order_item_orders.order ordre FROM omeka_item_order_item_orders")->fetchAll();
         $order = array();
         foreach ($ordre as $vals) {
@@ -114,14 +113,16 @@ SQL;
             }
             return ($a['ordre'] < $b['ordre']) ? -1 : 1;
         });
-        $notices .= '<div class="notices"><ul>';
+
+        // Prepare html.
+        $notices = '<div class="notices"><ul>' . PHP_EOL;
         foreach ($items as $id => $item) {
             $item = get_record_by_id('item', $item['id']);
             if ($item) {
-                $notices .= '<li>' . link_to_item(null, array(), 'show', $item) . '</li>';
+                $notices .= '<li>' . link_to_item(null, array(), 'show', $item) . '</li>' . PHP_EOL;
             }
         }
-        $notices .= '</ul></div>';
+        $notices .= '</ul></div>' . PHP_EOL;
         return $notices;
     }
 }
