@@ -29,7 +29,7 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
             if ($items = $this->fetch_items($col['id'])) {
                 $plus = '<span class="montrer">+</span>';
             }
-            $this->tree .= "<li><a class='collection' href='collections/show/" . $col['id'] . "'>" . $col['name'] . "</a> $plus </li>";
+            $this->tree .= '<li>' . link_to_collection(null, array('class' => 'collection'), 'show', $collection) . $plus . '</li>';
             $this->tree .= $items;
         }
         $this->tree .= '</ul>';
@@ -60,7 +60,7 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
             if ($items = $this->fetch_items($col['id'])) {
                 $plus = '<span class="montrer">+</span>';
             }
-            $this->tree .= "<li><a class='collection' href='collections/show/" . $col['id'] . "'>" . $col['name'] . "</a> $plus </li>";
+            $this->tree .= '<li>' . link_to_collection(null, array('class' => 'collection'), 'show', $collection) . $plus . '</li>';
             $this->tree .= $items;
         }
         $this->tree .= '</ul></div>';
@@ -99,7 +99,7 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
         foreach ($items as $id => $item) {
             $item = get_record_by_id('item', $item['id']);
             if ($item) {
-                $notices .= "<li style='list-style-type:circle;'><a href='items/show/" . metadata($item, 'id') . "' >" . metadata($item, array('Dublin Core', 'Title')) . "</a></li>";
+                $notices .= '<li style="list-style-type:circle;">' . link_to_item(null, array(), 'show', $item) . '</li>';
             }
         }
         $notices .= '</ul></div>';
