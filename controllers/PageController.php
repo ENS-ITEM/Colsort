@@ -1,7 +1,10 @@
 <?php
+require_once 'TraitOrderCollections.php';
 
 class Colsort_PageController extends Omeka_Controller_AbstractActionController
 {
+    use TraitOrderCollections;
+
     public function ordercollectionsAction()
     {
         $form = new Zend_Form();
@@ -81,24 +84,8 @@ HTML;
                 'label' => 'Soumettre',
             )
         ));
-        return $this->prettifyForm($form);
-    }
 
-    public function orderCollections($cols)
-    {
-        $order = unserialize(get_option('colsort_collections_order')) ?: array();
-        foreach ($cols as $id => $col) {
-            if (isset($order[$col['id']])) {
-                $cols[$id]['ordre'] = $order[$col['id']];
-            }
-        }
-        usort($cols, function ($a, $b) {
-            if ($a['ordre'] == $b['ordre']) {
-                return 0;
-            }
-            return ($a['ordre'] < $b['ordre']) ? -1 : 1;
-        });
-        return $cols;
+        return $this->prettifyForm($form);
     }
 
     private function prettifyForm($form)

@@ -1,7 +1,10 @@
 <?php
+require_once 'TraitOrderCollections.php';
 
 class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 {
+    use TraitOrderCollections;
+
     protected $tree = '';
 
     public function affichecollectionsAction()
@@ -110,24 +113,5 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
         }
         $notices .= '</ul></div>';
         return $notices;
-    }
-
-    public function orderCollections($cols)
-    {
-        $order = unserialize(get_option('colsort_collections_order')) ?: array();
-        foreach ($cols as $id => $col) {
-            if (isset($order[$col['id']])) {
-                $cols[$id]['ordre'] = $order[$col['id']];
-            } else {
-                $cols[$id]['ordre'] = 0;
-            }
-        }
-        usort($cols, function ($a, $b) {
-            if ($a['ordre'] == $b['ordre']) {
-                return 0;
-            }
-            return ($a['ordre'] < $b['ordre']) ? -1 : 1;
-        });
-        return $cols;
     }
 }
