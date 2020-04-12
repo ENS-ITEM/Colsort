@@ -39,12 +39,14 @@ HTML;
 
     private function getCollectionsForm()
     {
-        $order = unserialize(get_option('colsort_collections_order')) ?: array();
         $form = new Zend_Form();
         $form->setName('SortCollections');
 
         // Tri selon numéro d'ordre
+        $order = unserialize(get_option('colsort_collections_order')) ?: array();
         asort($order);
+
+        $db = get_db();
 
         $collections = get_recent_collections(1000);
         $collections = $this->orderCollections($collections);
@@ -52,7 +54,6 @@ HTML;
             $cid = $col['id'];
             $nom = link_to_collection(null, array(), 'show', $col);
             $query = "SELECT parent_collection_id FROM omeka_collection_trees WHERE collection_id = $cid";
-            $db = get_db();
             $parentId = $db->query($query)->fetchAll();
             $parentId = $parentId[0]['parent_collection_id'];
             $parentName = $db->query("SELECT name FROM omeka_collection_trees WHERE collection_id = $parentId")->fetchAll();

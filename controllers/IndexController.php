@@ -7,19 +7,25 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 
     protected $tree = '';
 
+    private $hasUser = false;
+
     public function affichecollectionsAction()
     {
-        $query = "SELECT collection_id id, name, c.public public FROM omeka_collection_trees t LEFT JOIN omeka_collections c ON t.collection_id = c.id WHERE t.parent_collection_id = 0";
+        $this->hasUser = (bool) current_user();
+        $andPublicOnly = $this->hasUser ? '' : 'AND c.public = 1';
+        $query = <<<SQL
+SELECT collection_id id, name, c.public public
+FROM omeka_collection_trees t
+LEFT JOIN omeka_collections c ON t.collection_id = c.id
+WHERE t.parent_collection_id = 0
+$andPublicOnly;
+SQL;
         $db = get_db();
         $cols = $db->query($query)->fetchAll();
         $cols = $this->orderCollections($cols);
-
         $includeItems = (bool) get_option('colsort_append_items');
         $this->tree .= '<ul>';
         foreach ($cols as $col) {
-            if ($col['public'] <> 1 && !current_user()) {
-                continue;
-            }
             $collection = get_record_by_id('collection', $col['id']);
             if (!$collection) {
                 continue;
@@ -42,7 +48,14 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 
     private function fetch_child_collections($collection_id)
     {
-        $query = "SELECT t.collection_id id, name, c.public public FROM omeka_collection_trees t INNER JOIN omeka_collections c ON t.collection_id = c.id WHERE parent_collection_id = " . $collection_id;
+        $andPublicOnly = $this->hasUser ? '' : 'AND c.public = 1';
+        $query = <<<SQL
+SELECT t.collection_id id, name, c.public public
+FROM omeka_collection_trees t
+INNER JOIN omeka_collections c ON t.collection_id = c.id
+WHERE parent_collection_id = $collection_id
+$andPublicOnly;
+SQL;
         $db = get_db();
         $child_collections = $db->query($query)->fetchAll();
         if (!$child_collections) {
@@ -56,9 +69,6 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 
         $this->tree .= '<div class="collections"><ul>';
         foreach ($child_collections as $col) {
-            if ($col['public'] <> 1 && !current_user()) {
-                continue;
-            }
             $collection = get_record_by_id('collection', $col['id']);
             if (!$collection) {
                 continue;
