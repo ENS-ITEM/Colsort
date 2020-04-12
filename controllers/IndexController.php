@@ -9,7 +9,7 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 
     private $hasUser = false;
 
-    public function affichecollectionsAction()
+    public function arbreCollectionsAction()
     {
         $this->hasUser = (bool) current_user();
         $andPublicOnly = $this->hasUser ? '' : 'AND c.public = 1';

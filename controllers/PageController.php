@@ -5,7 +5,7 @@ class Colsort_PageController extends Omeka_Controller_AbstractActionController
 {
     use TraitOrderCollections;
 
-    public function ordercollectionsAction()
+    public function orderCollectionsAction()
     {
         $form = new Zend_Form();
         $configUrl = url('plugins/config?name=Colsort');

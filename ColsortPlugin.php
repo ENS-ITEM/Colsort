@@ -94,7 +94,7 @@ class ColsortPlugin extends Omeka_Plugin_AbstractPlugin
                 array(
                     'module' => 'colsort',
                     'controller' => 'index',
-                    'action' => 'affichecollections',
+                    'action' => 'arbre-collections',
                 )
             )
         );
@@ -105,7 +105,7 @@ class ColsortPlugin extends Omeka_Plugin_AbstractPlugin
                 array(
                     'module' => 'colsort',
                     'controller' => 'page',
-                    'action' => 'ordercollections',
+                    'action' => 'order-collections',
                 )
             )
         );
