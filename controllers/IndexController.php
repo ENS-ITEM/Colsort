@@ -14,11 +14,14 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 
         $cols = $this->orderCollections($cols);
 
-        foreach ($cols as $id => $col) {
+        foreach ($cols as $col) {
             if ($col['public'] <> 1 && !current_user()) {
                 continue;
             }
             $collection = get_record_by_id('collection', $col['id']);
+            if (!$collection) {
+                continue;
+            }
             $plus = '';
             if ($this->fetch_child_collections($col['id'])) {
                 $plus = '<span class="montrer">+</span>';
@@ -45,12 +48,15 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
         $this->tree .= '<div class="collections"><ul>';
         $child_collections = $this->orderCollections($child_collections);
         $plus = '';
-        foreach ($child_collections as $id => $col) {
+        foreach ($child_collections as $col) {
             if ($col['public'] <> 1 && !current_user()) {
                 continue;
             }
             $collection = get_record_by_id('collection', $col['id']);
-            $plus = "";
+            if (!$collection) {
+                continue;
+            }
+            $plus = '';
             if ($items = $this->fetch_items($col['id'])) {
                 $plus = '<span class="montrer">+</span>';
             }
@@ -63,7 +69,7 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 
     private function fetch_items($cid)
     {
-        $notices = "";
+        $notices = '';
         $db = get_db();
         $items = $db->query("SELECT id FROM omeka_items WHERE collection_id = " . $cid)->fetchAll();
         if (!$items) {
@@ -72,7 +78,7 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
         // Sort items by item order module
         $ordre = $db->query("SELECT item_id, omeka_item_order_item_orders.order ordre FROM omeka_item_order_item_orders")->fetchAll();
         $order = array();
-        foreach ($ordre as $i => $vals) {
+        foreach ($ordre as $vals) {
             $order[$vals['item_id']] = $vals['ordre'];
         }
         foreach ($items as $id => $item) {
