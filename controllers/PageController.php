@@ -1,12 +1,11 @@
 <?php
-require_once 'TraitOrderCollections.php';
-
 class Colsort_PageController extends Omeka_Controller_AbstractActionController
 {
-    use TraitOrderCollections;
-
     public function orderCollectionsAction()
     {
+        $this->orderedCollections = json_decode(get_option('colsort_collections_order'), true) ?: array();
+        $this->includeItems = (bool) get_option('colsort_append_items');
+
         $form = new Zend_Form();
         $configUrl = url('plugins/config?name=Colsort');
         $this->view->content = <<<HTML
@@ -27,24 +26,41 @@ HTML;
             $formData = $this->_request->getPost();
             if ($form->isValid($formData)) {
                 unset($formData['save']);
-                $order = serialize($formData);
-                set_option('colsort_collections_order', $order);
+                // Convert string keys and values to integer.
+                $this->orderedCollections = array_combine(array_map('intval', array_keys($formData)), array_map('intval', array_values($formData)));
+                // Sort by the specified order.
+                asort($this->orderedCollections);
+                set_option('colsort_collections_order', json_encode($this->orderedCollections));
                 $this->_helper->flashMessenger('Ordre des collections sauvegardé.', 'success');
             }
         }
-
         $form = $this->getCollectionsForm();
         $this->view->content .= $form;
+    }
+
+    protected function orderCollections($cols)
+    {
+        foreach ($cols as $id => $col) {
+            if (isset($this->orderedCollections[$col['id']])) {
+                $cols[$id]['ordre'] = $this->orderedCollections[$col['id']];
+            }
+        }
+        usort($cols, function ($a, $b) {
+            if (!isset($a['ordre'])
+                || !isset($b['ordre'])
+                || ($a['ordre'] == $b['ordre'])
+            ) {
+                return 0;
+            }
+            return ($a['ordre'] < $b['ordre']) ? -1 : 1;
+        });
+        return $cols;
     }
 
     private function getCollectionsForm()
     {
         $form = new Zend_Form();
         $form->setName('SortCollections');
-
-        // Tri selon numéro d'ordre
-        $order = unserialize(get_option('colsort_collections_order')) ?: array();
-        asort($order);
 
         $db = get_db();
 
@@ -69,8 +85,7 @@ HTML;
                 $nom = "<b>$nom</b>";
             }
 
-            $num = empty($order[$cid]) ? '' : $order[$cid];
-
+            $num = empty($this->orderedCollections[$cid]) ? '' : (string) $this->orderedCollections[$cid];
             $fieldCol = new Zend_Form_Element_Text('col_' . $cid);
             $fieldCol
                 ->setName($cid)

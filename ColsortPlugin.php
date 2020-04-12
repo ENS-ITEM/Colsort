@@ -20,7 +20,7 @@ class ColsortPlugin extends Omeka_Plugin_AbstractPlugin
     );
 
     protected $_options = array(
-        'colsort_collections_order' => 'a:0:{}',
+        'colsort_collections_order' => '{}',
         'colsort_append_items' => false,
     );
 
@@ -42,8 +42,11 @@ class ColsortPlugin extends Omeka_Plugin_AbstractPlugin
         $oldVersion = $args['old_version'];
         $newVersion = $args['new_version'];
         if (version_compare($oldVersion, '0.2', '<')) {
-            set_option('colsort_collections_order',
-                get_option('sortcol_preferences') ?: $this->_options['colsort_collections_order']);
+            $order = unserialize(get_option('sortcol_preferences')) ?: json_decode($this->_options['colsort_collections_order'], true);
+            // Convert string keys to integer.
+            $order = array_combine(array_map('intval', array_keys($order)), array_map('intval', array_values($order)));
+            asort($order);
+            set_option('colsort_collections_order', json_encode($order));
             delete_option('sortcol_preferences');
 
             $flash = Zend_Controller_Action_HelperBroker::getStaticHelper('FlashMessenger');
@@ -77,7 +80,6 @@ class ColsortPlugin extends Omeka_Plugin_AbstractPlugin
     {
         $post = $args['post'];
         $post = array_intersect_key($post, $this->_options);
-        $post['colsort_collections_order'] = serialize($post['colsort_collections_order']) ?: serialize(array());
         foreach ($post as $optionKey => $optionValue) {
             set_option($optionKey, $optionValue);
         }

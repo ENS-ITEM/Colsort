@@ -1,12 +1,16 @@
-div.notices, div.collections {
+#collection-tree .notices,
+#collection-tree .collections {
   display:none;
 }
-.montrer {
+#collection-tree .collection {
+  font-weight : bold;
+}
+#collection-tree ul ul {
+    margin-bottom: 0;
+}
+#collection-tree .montrer {
   cursor:pointer;
   color:#aaa;
-}
-.collection {
-  font-weight : bold;
 }
 #titre-arbo {
   font-weight: bold;

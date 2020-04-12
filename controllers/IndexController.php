@@ -1,9 +1,8 @@
 <?php
-require_once 'TraitOrderCollections.php';
-
 class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 {
-    use TraitOrderCollections;
+    protected $orderedCollections = array();
+    protected $includeItems = false;
 
     protected $tree = '';
 
@@ -11,78 +10,136 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 
     public function arbreCollectionsAction()
     {
-        $this->hasUser = (bool) current_user();
-        $andPublicOnly = $this->hasUser ? '' : 'AND c.public = 1';
-        $query = <<<SQL
-SELECT collection_id id, name, c.public public
-FROM omeka_collection_trees t
-LEFT JOIN omeka_collections c ON t.collection_id = c.id
-WHERE t.parent_collection_id = 0
-$andPublicOnly;
-SQL;
-        $db = get_db();
-        $cols = $db->query($query)->fetchAll();
-        $cols = $this->orderCollections($cols);
-        $includeItems = (bool) get_option('colsort_append_items');
+        $this->orderedCollections = json_decode(get_option('colsort_collections_order'), true) ?: array();
+        $this->includeItems = (bool) get_option('colsort_append_items');
 
-        $this->tree .= '<ul>' . PHP_EOL;
-        foreach ($cols as $col) {
-            $collection = get_record_by_id('collection', $col['id']);
-            if (!$collection) {
-                continue;
-            }
-            $plus = '';
-            $items = '';
-            if ($this->fetch_child_collections($col['id'])) {
-                $plus = ' <span class="montrer">+</span>';
-            }
-            if ($includeItems && $items = $this->fetch_items($col['id'])) {
-                $plus = ' <span class="montrer">+</span>';
-            }
-            $this->tree .= '<li>' . link_to_collection(null, array('class' => 'collection'), 'show', $collection) . $plus . '</li>' . PHP_EOL;
-            $this->tree .= $items;
-        }
-        $this->tree .= '</ul>' . PHP_EOL;
-        $this->view->tree = $this->tree;
+        $this->view->tree = $this->collectionTreeFullList();
         return true;
     }
 
-    private function fetch_child_collections($collection_id)
+    /**
+     * Build a nested HTML unordered list of the full collection tree, starting
+     * at root collections.
+     *
+     * Copy of \CollectionTree_View_Helper_CollectionTreeFullList:collectionTreeFullList(),
+     * except sort of root collections and method used to get the sub-trees.
+     *
+     * @param bool $linkToCollectionShow
+     * @return string|null
+     */
+    protected function collectionTreeFullList($linkToCollectionShow = true)
     {
-        $andPublicOnly = $this->hasUser ? '' : 'AND c.public = 1';
-        $query = <<<SQL
-SELECT t.collection_id id, name, c.public public
-FROM omeka_collection_trees t
-INNER JOIN omeka_collections c ON t.collection_id = c.id
-WHERE parent_collection_id = $collection_id
-$andPublicOnly;
-SQL;
-        $db = get_db();
-        $child_collections = $db->query($query)->fetchAll();
-        if (!$child_collections) {
-            return false;
+        $rootCollections = get_db()->getTable('CollectionTree')->getRootCollections();
+        // Return NULL if there are no root collections.
+        if (!$rootCollections) {
+            return null;
         }
 
-        $includeItems = (bool) get_option('colsort_append_items');
+        $rootCollections = array_replace(
+            array_intersect_key(array_filter($this->orderedCollections), $rootCollections),
+            $rootCollections
+        );
 
-        $child_collections = $this->orderCollections($child_collections);
+        $collectionTable = get_db()->getTable('Collection');
+        $html = '<div id="collection-tree"><ul class="">' . PHP_EOL;
+        foreach ($rootCollections as $rootCollection) {
+            $html .= '<li>';
+            if ($linkToCollectionShow) {
+                $html .= link_to_collection(null, array('class' => 'collection'), 'show', $collectionTable->find($rootCollection['id']));
+            } else {
+                $html .= $rootCollection['name'] ? $rootCollection['name'] : __('[Untitled]');
+            }
+            $descendantTree = get_db()->getTable('CollectionTree')->getDescendantTree($rootCollection['id']);
+            $plus = '';
+            $items = '';
+            $sub = $this->collectionTreeList($descendantTree, $linkToCollectionShow);
+            if ($sub) {
+                $plus = ' <span class="montrer">+</span>';
+            }
+            if ($this->includeItems && isset($rootCollection['id'])) {
+                $plus = ' <span class="montrer">+</span>';
+                $items = $this->fetch_items($rootCollection['id']);
+            }
+            $html .= $plus;
+            $html .= $sub;
+            $html .= $items;
+            $html .= '</li>' . PHP_EOL;
+        }
+        $html .= '</ul></div>' . PHP_EOL;
+        return $html;
+    }
 
-        $this->tree .= '<div class="collections"><ul>' . PHP_EOL;
-        foreach ($child_collections as $col) {
-            $collection = get_record_by_id('collection', $col['id']);
-            if (!$collection) {
-                continue;
+    /**
+     * Recursively build a nested HTML unordered list from the provided
+     * collection tree.
+     *
+     * Copy of \CollectionTree_View_Helper_CollectionTreeList:collectionTreeList(),
+     * except the order and the inclusion of items if specified.
+     *
+     * @see \CollectionTreeTable::getCollectionTree()
+     * @see \CollectionTreeTable::getAncestorTree()
+     * @see \CollectionTreeTable::getDescendantTree()
+     * @param array $collectionTree
+     * @param bool $linkToCollectionShow
+     * @param bool $linkToCurrentCollectionShow Require option $linkToCollectionShow.
+     * @return string
+     */
+    protected function collectionTreeList($collectionTree, $linkToCollectionShow = true, $linkToCurrentCollection = false)
+    {
+        if (!$collectionTree) {
+            return;
+        }
+
+        $collections = array();
+        $noCollections = array();
+        $no = 0;
+        foreach ($collectionTree as $collection) {
+            if (isset($collection['id'])) {
+                $collections[$collection['id']] = $collection;
+            } else {
+                $noCollections['no_' . ++$no] = $collection;
+            }
+        }
+        $collectionTree = array_replace(
+            array_intersect_key(array_filter($this->orderedCollections), $collections),
+            $collections
+        ) + $noCollections;
+
+        $linkToCurrentCollection = $linkToCollectionShow && $linkToCurrentCollection;
+
+        $collectionTable = get_db()->getTable('Collection');
+        $html = '<ul class="collections">' . PHP_EOL;
+        foreach ($collectionTree as $collection) {
+            $html .= '<li' . (isset($collection['current']) ? ' class="active"' : '') . '>' . PHP_EOL;
+            // No link to current collection, unless specified.
+            if ($linkToCollectionShow && ($linkToCurrentCollection || !isset($collection['current'])) && isset($collection['id'])) {
+                $html .= link_to_collection(null, array('class' => 'collection'), 'show', $collectionTable->find($collection['id']));
+            }
+            // No link to private parent collection.
+            elseif (!isset($collection['id'])) {
+                $html .= __('[Unavailable]');
+            }
+            // Display name of current collection.
+            else {
+                $html .= empty($collection['name']) ? __('[Untitled]') : $collection['name'];
             }
             $plus = '';
             $items = '';
-            if ($includeItems && $items = $this->fetch_items($col['id'])) {
+            $sub = $this->collectionTreeList($collection['children'], $linkToCollectionShow, $linkToCurrentCollection);
+            if ($sub) {
                 $plus = ' <span class="montrer">+</span>';
             }
-            $this->tree .= '<li>' . link_to_collection(null, array('class' => 'collection'), 'show', $collection) . $plus . '</li>' . PHP_EOL;
-            $this->tree .= $items;
+            if ($this->includeItems && isset($collection['id'])) {
+                $plus = ' <span class="montrer">+</span>';
+                $items = $this->fetch_items($collection['id']);
+            }
+            $html .= $plus;
+            $html .= $sub;
+            $html .= $items;
+            $html .= '</li>' . PHP_EOL;
         }
-        $this->tree .= '</ul></div>' . PHP_EOL;
-        return true;
+        $html .= '</ul>' . PHP_EOL;
+        return $html;
     }
 
     private function fetch_items($cid)
@@ -115,14 +172,14 @@ SQL;
         });
 
         // Prepare html.
-        $notices = '<div class="notices"><ul>' . PHP_EOL;
+        $notices = '<ul class="notices">' . PHP_EOL;
         foreach ($items as $id => $item) {
             $item = get_record_by_id('item', $item['id']);
             if ($item) {
                 $notices .= '<li>' . link_to_item(null, array(), 'show', $item) . '</li>' . PHP_EOL;
             }
         }
-        $notices .= '</ul></div>' . PHP_EOL;
+        $notices .= '</ul>' . PHP_EOL;
         return $notices;
     }
 }

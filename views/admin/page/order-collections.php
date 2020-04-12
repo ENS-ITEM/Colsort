@@ -1,5 +1,5 @@
 <?php
-echo head(array('title' => 'Collections', 'bodyclass' => 'collections sort'));
+echo head(array('title' => 'Classement des collections', 'bodyclass' => 'collections sort'));
 
 echo flash();
 echo $content;
