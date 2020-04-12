@@ -108,7 +108,7 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 
     public function orderCollections($cols)
     {
-        $order = unserialize(get_option('sortcol_preferences'));
+        $order = unserialize(get_option('colsort_collections_order')) ?: array();
         foreach ($cols as $id => $col) {
             if (isset($order[$col['id']])) {
                 $cols[$id]['ordre'] = $order[$col['id']];

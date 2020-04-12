@@ -14,7 +14,7 @@ On affiche les collections d'abord dans l'ordre croissant des collections parent
             if ($form->isValid($formData)) {
                 unset($formData['save']);
                 $order = serialize($formData);
-                set_option('sortcol_preferences', $order);
+                set_option('colsort_collections_order', $order);
                 $this->_helper->flashMessenger('Ordre des collections sauvegardé.');
             }
         }
@@ -25,7 +25,7 @@ On affiche les collections d'abord dans l'ordre croissant des collections parent
 
     private function getCollectionsForm()
     {
-        $order = unserialize(get_option('sortcol_preferences'));
+        $order = unserialize(get_option('colsort_collections_order')) ?: array();
         $form = new Zend_Form();
         $form->setName('SortCollections');
 
@@ -76,7 +76,7 @@ On affiche les collections d'abord dans l'ordre croissant des collections parent
 
     public function orderCollections($cols)
     {
-        $order = unserialize(get_option('sortcol_preferences'));
+        $order = unserialize(get_option('colsort_collections_order')) ?: array();
         foreach ($cols as $id => $col) {
             if (isset($order[$col['id']])) {
                 $cols[$id]['ordre'] = $order[$col['id']];
