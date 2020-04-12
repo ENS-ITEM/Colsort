@@ -29,7 +29,7 @@ HTML;
                 unset($formData['save']);
                 $order = serialize($formData);
                 set_option('colsort_collections_order', $order);
-                $this->_helper->flashMessenger('Ordre des collections sauvegardé.');
+                $this->_helper->flashMessenger('Ordre des collections sauvegardé.', 'success');
             }
         }
 
