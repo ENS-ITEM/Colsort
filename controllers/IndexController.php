@@ -9,11 +9,10 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
         $query = "SELECT collection_id id, name, c.public public FROM omeka_collection_trees t LEFT JOIN omeka_collections c ON t.collection_id = c.id WHERE t.parent_collection_id = 0";
         $db = get_db();
         $cols = $db->query($query)->fetchAll();
-
-        $this->tree .= '<ul>';
-
         $cols = $this->orderCollections($cols);
 
+        $includeItems = (bool) get_option('colsort_append_items');
+        $this->tree .= '<ul>';
         foreach ($cols as $col) {
             if ($col['public'] <> 1 && !current_user()) {
                 continue;
@@ -26,7 +25,8 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
             if ($this->fetch_child_collections($col['id'])) {
                 $plus = '<span class="montrer">+</span>';
             }
-            if ($items = $this->fetch_items($col['id'])) {
+            $items = '';
+            if ($includeItems && $items = $this->fetch_items($col['id'])) {
                 $plus = '<span class="montrer">+</span>';
             }
             $this->tree .= '<li>' . link_to_collection(null, array('class' => 'collection'), 'show', $collection) . $plus . '</li>';
@@ -45,9 +45,13 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
         if (!$child_collections) {
             return false;
         }
-        $this->tree .= '<div class="collections"><ul>';
+
+        $includeItems = (bool) get_option('colsort_append_items');
+
         $child_collections = $this->orderCollections($child_collections);
         $plus = '';
+
+        $this->tree .= '<div class="collections"><ul>';
         foreach ($child_collections as $col) {
             if ($col['public'] <> 1 && !current_user()) {
                 continue;
@@ -57,7 +61,8 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
                 continue;
             }
             $plus = '';
-            if ($items = $this->fetch_items($col['id'])) {
+            $items = '';
+            if ($includeItems && $items = $this->fetch_items($col['id'])) {
                 $plus = '<span class="montrer">+</span>';
             }
             $this->tree .= '<li>' . link_to_collection(null, array('class' => 'collection'), 'show', $collection) . $plus . '</li>';
@@ -69,13 +74,14 @@ class Colsort_IndexController extends Omeka_Controller_AbstractActionController
 
     private function fetch_items($cid)
     {
-        $notices = '';
         $db = get_db();
         $items = $db->query("SELECT id FROM omeka_items WHERE collection_id = " . $cid)->fetchAll();
         if (!$items) {
             return false;
         }
+
         // Sort items by item order module
+        $notices = '';
         $ordre = $db->query("SELECT item_id, omeka_item_order_item_orders.order ordre FROM omeka_item_order_item_orders")->fetchAll();
         $order = array();
         foreach ($ordre as $vals) {
