@@ -1,0 +1,20 @@
+#collection-tree .notices,
+#collection-tree .collections {
+  display:none;
+}
+#collection-tree .collection {
+  font-weight : bold;
+}
+#collection-tree ul ul {
+    margin-bottom: 0;
+}
+#collection-tree .montrer {
+  cursor:pointer;
+  color:#aaa;
+}
+#titre-arbo {
+  font-weight: bold;
+}
+.tout {
+  cursor:pointer;
+}
